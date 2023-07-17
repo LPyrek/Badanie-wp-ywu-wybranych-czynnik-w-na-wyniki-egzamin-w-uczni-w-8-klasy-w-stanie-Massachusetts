@@ -1,0 +1,60 @@
+#HELWIG================================================================
+function scalar helwig (series y, list robocza)
+    H=0
+    loop foreach j robocza --quiet
+        h=(corr(y,robocza.$j))^2
+        s=0
+        loop foreach k robocza --quiet
+            c=abs(corr(robocza.$j,robocza.$k))
+            s=s+c
+        endloop
+        h=h/s
+        H=H+h
+    endloop
+    return H
+end function
+#=================================================================
+function void kataliza(series y, list x)
+    scalar ni = 1
+    loop for (i = 1; i<nelem(x); i+=1)
+        loop for (j=i+1; j<=nelem(x); j+=1) # sprawdzenie każdej możliwej pary zmiennych
+            scalar ri = corr(x[i],y) 
+            scalar rj = corr(x[j],y)
+            scalar rij = corr(x[i],x[j])
+            scalar temp = 0
+            if (ri < 0)
+                ri = ri * (-1)
+                rij = rij * (-1)
+                temp = 1
+            endif 
+            if (rj < 0)
+                rj = rj * (-1)
+                if (temp == 0) 
+                    rij = rij * (-1)
+                endif     
+            endif
+            if (ri < rj) # i mniejsze
+                if (rij < 0 || rij > ri/rj)
+                    printf("Zmienna \"%s\" jest katalizatorem ze zmienną \"%s\" \n",varnames(x)[i],varnames(x)[j])
+
+                endif
+            elif (rj <= ri) # j mniejsze    
+                if (rij < 0 || rij > rj/ri)
+                    printf("Zmienna \"%s\" jest katalizatorem ze zmienną \"%s\" \n",varnames(x)[j],varnames(x)[i])
+                endif
+            else
+                print("Nie występuje efekt katalizy")
+                ni = 0
+            endif 
+        endloop 
+    endloop
+    if (ni == 1)
+        ols y const x --quiet
+        ni = $rsq - helwig(y,x)
+        printf("\nNatężenie: %f", ni)
+        printf("\nWzględne natężenie: %f\%", ni/$rsq*100)
+    endif
+end function
+#==========================
+list X = percap lnchpct lnchpct_sq
+kataliza(totsc8, X)

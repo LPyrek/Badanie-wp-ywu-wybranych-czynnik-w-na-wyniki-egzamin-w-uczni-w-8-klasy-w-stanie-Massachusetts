@@ -1,0 +1,115 @@
+# Autor: Łukasz Pyrek
+
+#======================Helwig================================
+# funkcja obliczająca integralną pojemność informacyjną zmiennych z listy xlist 
+function scalar h(series Y, list xlist)
+    scalar H = 0
+    loop for i=1..nelem(xlist)
+        scalar suma = 0
+        loop for j=1..nelem(xlist)
+            suma += abs(corr(xlist[i], xlist[j]))
+        endloop
+        H += corr(Y, xlist[i]) ^ 2 / suma
+    endloop
+    return H
+end function
+
+#funkcja wyznaczająca wszystkie mozliwe podzbiory dla n zmiennych
+function matrix combin(int n)
+    matrix result = zeros(2^n, n)
+    loop i=0..(2^n - 1)
+        loop j=0..(n-1)
+            scalar val = floor((i / (2^j)) % 2)
+            result[i+1, j+1] = val
+        endloop
+    endloop
+    return result
+end function
+
+#wyznaczanie najlepszej kombinacji
+function void helwig(series Y, list X)
+    scalar n = nelem(X)
+    matrix H = zeros(2^n)
+    matrix comb = combin(n)
+    loop for i=1..(2^n)
+        list xlist = null
+        loop for j=1..n
+            if comb[i, j] == 1
+                xlist = xlist X[j]
+            endif
+        endloop
+        H[i] = h(Y, xlist)
+    endloop
+    print("Najlepsza kombinacja:") 
+    X
+    print(comb[imaxc(H),])
+    print("Integralna pojemność informacyjna:")
+    print(H[imaxc(H)])
+end function
+#========================================================================================
+
+#5. Model ściśle liniowy
+#ols totsc8 const regday speced lnchpct percap
+#modtest --normality
+#reset
+
+#6. Próba poprawy modelu
+#a. Redukcja ilości zmiennych
+#list X = regday speced lnchpct percap
+#helwig(totsc8, X)
+
+#b. Zmiana postaci modelu
+#series lnchpct_sq = lnchpct^2
+#ols totsc8 const percap lnchpct lnchpct_sq
+#reset
+
+#c. Wartości odstające
+#(usuniecie obserwacji w R i wczytanie ich do gretla)
+
+#======testowanie wlasnosci modelu=====
+#ols totsc8 const percap lnchpct lnchpct_sq
+#modtest --normality
+#reset
+#modtest --white
+#modtest --breusch-pagan
+#chow 90
+#vif
+
+#series lnchpct_cen = lnchpct - mean(lnchpct)
+#series lnchpct_cen_sq = lnchpct_cen^2
+#ols totsc8 const percap lnchpct_cen lnchpct_cen_sq
+#vif
+
+#corr totsc8 percap lnchpct lnchpct_sq
+#coef = $coeff
+#efekt_krancowy = coef[3,1] + 2*coef[4,1]*mean(lnchpct)
+#print(efekt_krancowy)
+
+
+# PROGNOZA PUNKTOWA, prognoza dla wartości średnich
+#matrix x_tau = {1, mean(percap), mean(lnchpct), mean(lnchpct)^2}
+#matrix a = $coeff
+#scalar prognoza_punktowa = x_tau*a
+
+# wariancja prognozy
+#scalar wariancja_prognozy= x_tau*$vcv*x_tau'+$ess/$df
+# blad prognozy
+#scalar blad_prognozy=sqrt(wariancja_prognozy)
+
+#95% przedział ufności dla prognozy
+#scalar dolna = prognoza_punktowa-critical(t,$df,0.025)*blad_prognozy
+#scalar gorna = prognoza_punktowa+critical(t,$df,0.025)*blad_prognozy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
